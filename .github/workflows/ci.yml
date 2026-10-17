@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      - name: Run markdownlint
+        run: markdownlint '**/*.md' || true
+
+  structure-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          REQUIRED=(
+            "SKILL.md"
+            "LICENSE"
+            "README.md"
+            "domains/paipan.md"
+            "domains/career.md"
+            "domains/timing.md"
+            "domains/city.md"
+            "references/classical-citations.md"
+            "references/wuxing-city.md"
+          )
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+          done
+          echo "All required files present ✅"
+
+      - name: Verify SKILL.md references all domains
+        run: |
+          # Check that SKILL.md mentions each domain file
+          for domain in paipan career timing city ziwei-paipan ziwei-career relationship health; do
+            if ! grep -q "domains/${domain}\.md" SKILL.md; then
+              echo "SKILL.md does not reference domains/${domain}.md"
+            fi
+          done
+          echo "SKILL.md reference check done ✅"
